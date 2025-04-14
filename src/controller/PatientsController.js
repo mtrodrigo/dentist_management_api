@@ -169,4 +169,19 @@ export default class PatientsController {
       return res.status(500).json({ message: "Erro ao atualizar paciente" });
     }
   }
+
+  static async removePatientById(req, res) {
+    const id = req.params.id;
+    const token = getToken(req);
+    const user = await getUserByToken(token);
+    const patient = await Patient.findOne({ _id: id, "user._id": user._id });
+    if (!patient) {
+      return res.status(404).json({ message: "Paciente não encontrado" });
+    }
+    if (patient.user._id.toString() !== user._id.toString()) {
+      return res.status(401).json({ message: "Usuário não autorizado" });
+    }
+    await Patient.findByIdAndDelete(id);
+    res.status(200).json({ message: "Paciente removido com sucesso" });
+  }
 }
