@@ -82,5 +82,14 @@ export default class PatientsController {
     res.status(200).json({ patients })
   }
 
-  
+  static async getPatientById(req, res) {
+    const id = req.params.id
+    const token = getToken(req)
+    const user = await getUserByToken(token)
+    const patient = await Patient.findOne({ _id: id, "user._id": user._id })
+    if (!patient) {
+      return res.status(404).json({ message: "Paciente não encontrado" });
+    }
+    res.status(200).json({ patient })
+  }
 }
