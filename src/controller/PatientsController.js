@@ -10,7 +10,6 @@ export default class PatientsController {
         .json({ message: "Campo obrigatório não preenchido" });
     }
 
-    //destructure the request body
     const {
       name,
       email,
