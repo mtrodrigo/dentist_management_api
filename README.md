@@ -32,11 +32,7 @@ A **Dentist Management API** é uma aplicação back-end desenvolvida para conec
     ```env
     DB_URL
     ```
-5. Execute as migrações do banco de dados:
-    ```bash
-    npx sequelize-cli db:migrate
-    ```
-6. Inicie o servidor:
+5. Inicie o servidor:
     ```bash
     npm start
     ```
