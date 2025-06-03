@@ -6,12 +6,6 @@ import axios from "axios";
 
 export default class PatientsController {
   static async create(req, res) {
-    console.log("[DEBUG] req.body:", req.body); // Verifique se os campos estão chegando
-    console.log("[DEBUG] req.files:", req.files); // Verifique as imagens (se enviadas)
-
-    if (!req.body || Object.keys(req.body).length === 0) {
-      return res.status(400).json({ message: "Dados não enviados" });
-    }
     //check if the user is authenticated
     const token = getToken(req);
     const user = await getUserByToken(token);
@@ -68,11 +62,10 @@ export default class PatientsController {
         .json({ message: "Histórico médico é obrigatório" });
     }
     try {
-      let imagesUrls = []; // Array para armazenar URLs de todas as imagens
+      let imagesUrls = [];
 
-      // Processar TODAS as imagens se existirem
+      // Upload images
       if (req.files && req.files.length > 0) {
-        // Processar cada imagem em paralelo
         const uploadPromises = req.files.map(async (file) => {
           const formData = new FormData();
           formData.append("image", file.buffer, {
@@ -88,11 +81,11 @@ export default class PatientsController {
           return imgBbResponse.data.data.url;
         });
 
-        // Aguardar todos os uploads terminarem
+        // Await uploads
         imagesUrls = await Promise.all(uploadPromises);
       }
 
-      // Criar paciente com todas as URLs
+      // Create pacient
       const patient = new Patient({
         name,
         email,
@@ -105,7 +98,7 @@ export default class PatientsController {
         zipCode,
         medicalHistory,
         user: { _id: user._id },
-        images: imagesUrls, // Todas as URLs serão salvas
+        images: imagesUrls,
       });
 
       const newPatient = await patient.save();
