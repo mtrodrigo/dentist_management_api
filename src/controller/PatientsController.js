@@ -141,12 +141,6 @@ export default class PatientsController {
     const token = getToken(req);
     const user = await getUserByToken(token);
 
-    if (!req.body) {
-      return res
-        .status(400)
-        .json({ message: "Campo obrigatório não preenchido" });
-    }
-
     const {
       name,
       email,
@@ -160,54 +154,84 @@ export default class PatientsController {
       medicalHistory,
     } = req.body;
 
-    //validation
-    if (
-      !name ||
-      !email ||
-      !phone ||
-      !cpf ||
-      !birthDate ||
-      !address ||
-      !city ||
-      !state ||
-      !zipCode ||
-      !medicalHistory
-    ) {
+    // Validation
+    if (!name) return res.status(400).json({ message: "Nome é obrigatório" });
+    if (!email) return res.status(400).json({ message: "Email é obrigatório" });
+    if (!phone)
+      return res.status(400).json({ message: "Telefone é obrigatório" });
+    if (!cpf) return res.status(400).json({ message: "CPF é obrigatório" });
+    if (!birthDate)
       return res
         .status(400)
-        .json({ message: "Campo obrigatório não preenchido" });
-    }
-
-    //check if the user is authenticated
-    const patient = await Patient.findOne({ _id: id, "user._id": user._id });
-    if (!patient) {
-      return res.status(404).json({ message: "Paciente não encontrado" });
-    }
-
-    //update the patient
-    try {
-      await Patient.updateOne(
-        { _id: id },
-        {
-          $set: {
-            name,
-            email,
-            phone,
-            cpf,
-            birthDate,
-            address,
-            city,
-            state,
-            zipCode,
-            medicalHistory,
-          },
-        }
-      );
+        .json({ message: "Data de nascimento é obrigatória" });
+    if (!address)
+      return res.status(400).json({ message: "Endereço é obrigatório" });
+    if (!city) return res.status(400).json({ message: "Cidade é obrigatória" });
+    if (!state)
+      return res.status(400).json({ message: "Estado é obrigatório" });
+    if (!zipCode) return res.status(400).json({ message: "CEP é obrigatório" });
+    if (!medicalHistory)
       return res
-        .status(200)
-        .json({ message: "Paciente atualizado com sucesso" });
+        .status(400)
+        .json({ message: "Histórico médico é obrigatório" });
+
+    try {
+      const patient = await Patient.findOne({ _id: id, "user._id": user._id });
+      if (!patient) {
+        return res.status(404).json({ message: "Paciente não encontrado" });
+      }
+
+      let imagesUrls = patient.images;
+
+      if (req.files && req.files.length > 0) {
+        const uploadPromises = req.files.map(async (file) => {
+          const formData = new FormData();
+          formData.append("image", file.buffer, {
+            filename: file.originalname,
+            contentType: file.mimetype,
+          });
+
+          const imgBbResponse = await axios.post(
+            `https://api.imgbb.com/1/upload?key=${process.env.IMG_BB_KEY}`,
+            formData,
+            { headers: formData.getHeaders() }
+          );
+          return imgBbResponse.data.data.url;
+        });
+
+        imagesUrls = await Promise.all(uploadPromises);
+      }
+
+      //Update patient
+      const updatedPatient = await Patient.findByIdAndUpdate(
+        id,
+        {
+          name,
+          email,
+          phone,
+          cpf,
+          birthDate,
+          address,
+          city,
+          state,
+          zipCode,
+          medicalHistory,
+          images: imagesUrls,
+        },
+        { new: true }
+      );
+
+      return res.status(200).json({
+        message: "Paciente atualizado com sucesso",
+        updatedPatient,
+      });
     } catch (error) {
-      return res.status(500).json({ message: "Erro ao atualizar paciente" });
+      console.error("Erro ao atualizar paciente:", error);
+      return res.status(500).json({
+        message: "Erro ao atualizar paciente",
+        error:
+          process.env.NODE_ENV === "development" ? error.message : undefined,
+      });
     }
   }
 
@@ -224,5 +248,46 @@ export default class PatientsController {
     }
     await Patient.findByIdAndDelete(id);
     res.status(200).json({ message: "Paciente removido com sucesso" });
+  }
+
+  static async removeImage(req, res) {
+    try {
+      const { patientId, imageUrl } = req.params;
+      const token = getToken(req);
+      const user = await getUserByToken(token);
+
+      const patient = await Patient.findOne({
+        _id: patientId,
+        "user._id": user._id,
+      });
+
+      if (!patient) {
+        return res.status(404).json({ message: "Paciente não encontrado" });
+      }
+
+      const updatedImages = patient.images.filter((img) => img !== imageUrl);
+
+      if (updatedImages.length === patient.images.length) {
+        return res
+          .status(404)
+          .json({ message: "Imagem não encontrada no paciente" });
+      }
+
+      const updatedPatient = await Patient.findByIdAndUpdate(
+        patientId,
+        { $set: { images: updatedImages } },
+        { new: true }
+      );
+
+      return res.status(200).json({
+        message: "Imagem removida com sucesso",
+        updatedPatient,
+      });
+    } catch (error) {
+      console.error("Erro ao remover imagem:", error);
+      return res.status(500).json({
+        message: error,
+      });
+    }
   }
 }

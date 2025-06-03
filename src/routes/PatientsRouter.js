@@ -5,16 +5,31 @@ import multer, { memoryStorage } from "multer";
 
 const router = express.Router();
 
-const upload = multer({ storage: memoryStorage() })
+const upload = multer({ storage: memoryStorage() });
 
-router.post("/create", checkToken, upload.array("images"), PatientsController.create);
+router.post(
+  "/create",
+  checkToken,
+  upload.array("images"),
+  PatientsController.create
+);
 router.get("/mypatients", checkToken, PatientsController.getAllUserPatients);
 router.get("/mypatients/:id", checkToken, PatientsController.getPatientById);
-router.patch("/mypatients/:id", checkToken, PatientsController.updatePatient);
+router.patch(
+  "/mypatients/:id",
+  checkToken,
+  upload.array("images"),
+  PatientsController.updatePatient
+);
 router.delete(
   "/mypatients/:id",
   checkToken,
   PatientsController.removePatientById
+);
+router.delete(
+  "/:patientId/images/:imageUrl",
+  checkToken,
+  PatientsController.removeImage
 );
 
 export default router;
