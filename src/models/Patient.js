@@ -56,7 +56,9 @@ const Patient = mongoose.model(
         required: true,
         trim: true,
       },
-      images: Object,
+      images: {
+        type: [String]
+      },
       user: Object,
     },
     { timestamps: true }
