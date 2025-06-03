@@ -1,16 +1,23 @@
 import getToken from "../helpers/getToken.js";
 import getUserByToken from "../helpers/getUserByToken.js";
 import Patient from "../models/Patient.js";
+import FormData from "form-data";
+import axios from "axios";
 
 export default class PatientsController {
   static async create(req, res) {
-    if (!req.body) {
-      return res
-        .status(400)
-        .json({ message: "Campo obrigatório não preenchido" });
-    }
+    console.log("[DEBUG] req.body:", req.body); // Verifique se os campos estão chegando
+    console.log("[DEBUG] req.files:", req.files); // Verifique as imagens (se enviadas)
 
-    const images64 = req.body.images
+    if (!req.body || Object.keys(req.body).length === 0) {
+      return res.status(400).json({ message: "Dados não enviados" });
+    }
+    //check if the user is authenticated
+    const token = getToken(req);
+    const user = await getUserByToken(token);
+    if (!user) {
+      return res.status(401).json({ message: "Usuário não encontrado" });
+    }
 
     const {
       name,
@@ -26,52 +33,92 @@ export default class PatientsController {
     } = req.body;
 
     //validation
-    if (
-      !name ||
-      !email ||
-      !phone ||
-      !cpf ||
-      !birthDate ||
-      !address ||
-      !city ||
-      !state ||
-      !zipCode ||
-      !medicalHistory
-    ) {
+    if (!name) {
+      return res.status(400).json({ message: "Nome é obrigatório" });
+    }
+    if (!email) {
+      return res.status(400).json({ message: "Email é obrigatório" });
+    }
+    if (!phone) {
+      return res.status(400).json({ message: "Telefone é obrigatório" });
+    }
+    if (!cpf) {
+      return res.status(400).json({ message: "CPF é obrigatório" });
+    }
+    if (!birthDate) {
       return res
         .status(400)
-        .json({ message: "Campo obrigatório não preenchido" });
+        .json({ message: "Data de nascimento é obrigatória" });
     }
-
-    //check if the user is authenticated
-    const token = getToken(req);
-    const user = await getUserByToken(token);
-    if (!user) {
-      return res.status(401).json({ message: "Usuário não encontrado" });
+    if (!address) {
+      return res.status(400).json({ message: "Endereço é obrigatório" });
     }
-
-    //create a patient
-    const patient = new Patient({
-      name,
-      email,
-      phone,
-      cpf,
-      birthDate,
-      address,
-      city,
-      state,
-      zipCode,
-      medicalHistory,
-      user: { _id: user._id },
-    });
+    if (!city) {
+      return res.status(400).json({ message: "Cidade é obrigatória" });
+    }
+    if (!state) {
+      return res.status(400).json({ message: "Estado é obrigatório" });
+    }
+    if (!zipCode) {
+      return res.status(400).json({ message: "CEP é obrigatório" });
+    }
+    if (!medicalHistory) {
+      return res
+        .status(400)
+        .json({ message: "Histórico médico é obrigatório" });
+    }
     try {
+      let imagesUrls = []; // Array para armazenar URLs de todas as imagens
+
+      // Processar TODAS as imagens se existirem
+      if (req.files && req.files.length > 0) {
+        // Processar cada imagem em paralelo
+        const uploadPromises = req.files.map(async (file) => {
+          const formData = new FormData();
+          formData.append("image", file.buffer, {
+            filename: file.originalname,
+            contentType: file.mimetype,
+          });
+
+          const imgBbResponse = await axios.post(
+            `https://api.imgbb.com/1/upload?key=${process.env.IMG_BB_KEY}`,
+            formData,
+            { headers: formData.getHeaders() }
+          );
+          return imgBbResponse.data.data.url;
+        });
+
+        // Aguardar todos os uploads terminarem
+        imagesUrls = await Promise.all(uploadPromises);
+      }
+
+      // Criar paciente com todas as URLs
+      const patient = new Patient({
+        name,
+        email,
+        phone,
+        cpf,
+        birthDate,
+        address,
+        city,
+        state,
+        zipCode,
+        medicalHistory,
+        user: { _id: user._id },
+        images: imagesUrls, // Todas as URLs serão salvas
+      });
+
       const newPatient = await patient.save();
-      return res.status(201).json({
+      res.status(201).json({
         message: "Paciente cadastrado com sucesso",
         newPatient,
       });
     } catch (error) {
-      return res.status(500).json({ message: "Erro ao criar paciente" });
+      console.error("Erro no upload de imagens:", error);
+      res.status(500).json({
+        message: "Erro ao processar imagens",
+        error: error.message,
+      });
     }
   }
 
