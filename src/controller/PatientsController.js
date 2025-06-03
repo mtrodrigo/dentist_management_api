@@ -10,6 +10,8 @@ export default class PatientsController {
         .json({ message: "Campo obrigatório não preenchido" });
     }
 
+    const images64 = req.body.images
+
     const {
       name,
       email,
