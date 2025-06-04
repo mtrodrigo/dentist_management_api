@@ -252,7 +252,8 @@ export default class PatientsController {
 
   static async removeImage(req, res) {
     try {
-      const { patientId, imageUrl } = req.params;
+      const imageUrl = req.params.images;
+      const patientId = req.params.id;
       const token = getToken(req);
       const user = await getUserByToken(token);
 
