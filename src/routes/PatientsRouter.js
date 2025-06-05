@@ -27,7 +27,7 @@ router.delete(
   PatientsController.removePatientById
 );
 router.delete(
-  "/:patientId/images/:imageUrl",
+  "/:id/images/delete",
   checkToken,
   PatientsController.removeImage
 );

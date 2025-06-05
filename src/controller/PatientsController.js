@@ -216,7 +216,7 @@ export default class PatientsController {
           state,
           zipCode,
           medicalHistory,
-          images: imagesUrls,
+          images: [ ...patient.images, ...imagesUrls],
         },
         { new: true }
       );
@@ -229,8 +229,7 @@ export default class PatientsController {
       console.error("Erro ao atualizar paciente:", error);
       return res.status(500).json({
         message: "Erro ao atualizar paciente",
-        error:
-          process.env.NODE_ENV === "development" ? error.message : undefined,
+        error: error.message
       });
     }
   }
@@ -252,7 +251,7 @@ export default class PatientsController {
 
   static async removeImage(req, res) {
     try {
-      const imageUrl = req.params.images;
+      const imageUrl = decodeURIComponent(req.body.images);
       const id = req.params.id;
       const token = getToken(req);
       const user = await getUserByToken(token);
@@ -260,15 +259,15 @@ export default class PatientsController {
       console.log(id);
       console.log(imageUrl);      
       
-
       const patient = await Patient.findOne({
         _id: id,
         "user._id": user._id,
       });
-
+      
       if (!patient) {
         return res.status(404).json({ message: "Paciente não encontrado" });
       }
+      console.log("URLs in database:", patient.images);
 
       const updatedImages = patient.images.filter((img) => img !== imageUrl);
 
@@ -286,12 +285,11 @@ export default class PatientsController {
 
       return res.status(200).json({
         message: "Imagem removida com sucesso",
-        updatedPatient,
-      });
+        updatedPatient,      });
     } catch (error) {
       console.error("Erro ao remover imagem:", error);
       return res.status(500).json({
-        message: error,
+        message: error.message,
       });
     }
   }
