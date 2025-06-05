@@ -253,12 +253,16 @@ export default class PatientsController {
   static async removeImage(req, res) {
     try {
       const imageUrl = req.params.images;
-      const patientId = req.params.id;
+      const id = req.params.id;
       const token = getToken(req);
       const user = await getUserByToken(token);
 
+      console.log(id);
+      console.log(imageUrl);      
+      
+
       const patient = await Patient.findOne({
-        _id: patientId,
+        _id: id,
         "user._id": user._id,
       });
 
@@ -275,7 +279,7 @@ export default class PatientsController {
       }
 
       const updatedPatient = await Patient.findByIdAndUpdate(
-        patientId,
+        id,
         { $set: { images: updatedImages } },
         { new: true }
       );
