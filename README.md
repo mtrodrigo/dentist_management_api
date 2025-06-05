@@ -5,13 +5,14 @@ A **Dentist Management API** é uma aplicação back-end desenvolvida para conec
 
 ## Funcionalidades
 - **Gerenciamento de Pacientes**: Cadastro, edição, listagem e exclusão de pacientes.
+- **Gerenciamento de imagens**: Adição, edição e exclusão.
 - **Autenticação e Autorização**: Sistema seguro de login.
 
 ## Tecnologias Utilizadas
 - **Backend**: Node.js com Express.js
 - **Banco de Dados**: MongoDB
 - **Autenticação**: JSON Web Tokens (JWT)
-- **Documentação da API**: Swagger
+- **Imagens**: ImgBB
 - **Testes**: Postman
 - **Versionamento de Código**: Git
 
@@ -31,6 +32,7 @@ A **Dentist Management API** é uma aplicação back-end desenvolvida para conec
 4. Configure as variáveis de ambiente no arquivo `.env`:
     ```env
     DB_URL
+    IMG_BB_KEY
     ```
 5. Inicie o servidor:
     ```bash
